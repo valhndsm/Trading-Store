@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeVault — Live Charts & Trading Accounts</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060a0e;
+  --surface: #0d1318;
+  --surface2: #131c24;
+  --surface3: #1a2535;
+  --border: #1e2d3d;
+  --border2: #263545;
+  --text: #dde6ef;
+  --muted: #4a6070;
+  --accent: #00e5b0;
+  --accent2: #f7931a;
+  --accent3: #6366f1;
+  --red: #f0455a;
+  --green: #00e5b0;
+  --gold: #f59e0b;
+  --blue: #38bdf8;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* ── TICKER ── */
+.ticker{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 0;overflow:hidden;white-space:nowrap;flex-shrink:0}
+.ticker-track{display:inline-flex;gap:40px;animation:tickScroll 40s linear infinite}
+@keyframes tickScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.71rem;color:var(--muted)}
+.ti .sym{color:var(--text);font-weight:600;font-size:0.73rem}
+.ti .up{color:var(--green)}
+.ti .dn{color:var(--red)}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:0;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;height:52px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--text);padding:0 20px;border-right:1px solid var(--border);height:100%;display:flex;align-items:center}
+.logo span{color:var(--accent)}
+.nav-tabs{display:flex;height:100%;flex:1}
+.nav-tab{display:flex;align-items:center;gap:7px;padding:0 20px;font-size:0.82rem;font-weight:600;color:var(--muted);cursor:pointer;border-right:1px solid var(--border);border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;letter-spacing:0.03em}
+.nav-tab:hover{color:var(--text);background:var(--surface2)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,229,176,0.04)}
+.nav-tab svg{flex-shrink:0}
+.topbar-right{padding:0 16px;display:flex;align-items:center;gap:10px;margin-left:auto}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.live-label{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--green);letter-spacing:0.08em}
+
+/* ── MAIN LAYOUT ── */
+.main{display:flex;flex:1;overflow:hidden}
+.page{display:none;flex:1;overflow:hidden}
+.page.active{display:flex}
+
+/* ════ CHARTS PAGE ════ */
+#chartsPage{flex-direction:column}
+.chart-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.symbol-btn{padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.15s;letter-spacing:0.05em}
+.symbol-btn:hover{border-color:var(--accent);color:var(--accent)}
+.symbol-btn.active{background:rgba(0,229,176,0.12);border-color:var(--accent);color:var(--accent)}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.interval-btn{padding:4px 9px;font-size:0.7rem;font-weight:700;background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;font-family:'JetBrains Mono',monospace}
+.interval-btn:hover{color:var(--text)}
+.interval-btn.active{color:var(--accent2);border-color:var(--accent2)}
+.tb-label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-right:4px}
+
+.charts-body{display:flex;flex:1;overflow:hidden}
+.chart-main{flex:1;position:relative;overflow:hidden}
+.chart-sidebar{width:280px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+
+/* TradingView widget container */
+.tv-widget{width:100%;height:100%}
+#tvContainer{width:100%;height:100%}
+
+/* Sidebar watchlist */
+.ws-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ws-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.06em;color:var(--text)}
+.ws-count{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted)}
+.ws-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:space-between}
+.ws-item:hover{background:var(--surface2)}
+.ws-item.selected{background:rgba(0,229,176,0.06);border-left:2px solid var(--accent)}
+.ws-sym{font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;color:var(--text)}
+.ws-name{font-size:0.68rem;color:var(--muted);margin-top:2px}
+.ws-price{text-align:right}
+.ws-val{font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600}
+.ws-chg{font-family:'JetBrains Mono',monospace;font-size:0.68rem;margin-top:2px}
+.up{color:var(--green)}
+.dn{color:var(--red)}
+
+/* Bottom mini charts row */
+.mini-charts-row{height:130px;background:var(--surface);border-top:1px solid var(--border);display:flex;overflow-x:auto;flex-shrink:0}
+.mini-chart-slot{min-width:200px;border-right:1px solid var(--border);position:relative;cursor:pointer;flex-shrink:0;transition:background 0.15s}
+.mini-chart-slot:hover{background:var(--surface2)}
+.mini-chart-slot.active-slot{background:rgba(0,229,176,0.05);border-top:2px solid var(--accent)}
+.mini-label{position:absolute;top:6px;left:10px;z-index:2;display:flex;align-items:center;gap:6px}
+.mini-sym{font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:600;color:var(--text)}
+.mini-p{font-family:'JetBrains Mono',monospace;font-size:0.68rem}
+.mini-canvas{width:100%;height:100%}
+
+/* ════ MARKET PAGE ════ */
+#marketPage{flex-direction:column;overflow:hidden}
+.market-body{flex:1;overflow:hidden;display:flex}
+.market-content{flex:1;overflow-y:auto;padding:20px}
+
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px}
+.mkt-card{background:var(--surface);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s}
+.mkt-card:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-2px)}
+.mkt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.mkt-card.cat-forex::before{background:var(--accent3)}
+.mkt-card.cat-crypto::before{background:var(--accent2)}
+.mkt-card.cat-stocks::before{background:var(--blue)}
+.mkt-card.cat-indices::before{background:var(--gold)}
+.mkt-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.mkt-sym-wrap{}
+.mkt-sym{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.04em}
+.mkt-name{font-size:0.7rem;color:var(--muted);margin-top:2px}
+.mkt-cat-badge{font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px}
+.badge-forex{background:rgba(99,102,241,0.15);color:var(--accent3)}
+.badge-crypto{background:rgba(247,147,26,0.15);color:var(--accent2)}
+.badge-stocks{background:rgba(56,189,248,0.15);color:var(--blue)}
+.badge-indices{background:rgba(245,158,11,0.15);color:var(--gold)}
+.mkt-price{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:600;color:var(--text);margin-bottom:4px}
+.mkt-change{font-family:'JetBrains Mono',monospace;font-size:0.78rem}
+.mkt-sparkline{height:40px;margin-top:12px;position:relative}
+.mkt-sparkline canvas{width:100%;height:100%}
+.mkt-stats{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.mkt-stat{}
+.mkt-stat-lbl{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.mkt-stat-val{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text);margin-top:2px}
+
+/* ════ STORE PAGE ════ */
+#storePage{flex-direction:column;overflow:hidden}
+.store-body{flex:1;overflow-y:auto}
+.store-inner{max-width:1200px;margin:0 auto;padding:24px}
+
+/* Store step system */
+.store-step{display:none}
+.store-step.active{display:block}
+
+.store-header{margin-bottom:28px}
+.store-label{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px}
+.store-title{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:0.04em}
+.store-sub{color:var(--muted);font-size:0.88rem;margin-top:4px}
+
+.cat-filter{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.cf-btn{padding:7px 16px;font-size:0.78rem;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.2s;letter-spacing:0.04em}
+.cf-btn:hover{border-color:var(--border2);color:var(--text)}
+.cf-btn.active{background:rgba(0,229,176,0.1);border-color:var(--accent);color:var(--accent)}
+
+.acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.acc-card{background:var(--surface);border:1px solid var(--border);padding:24px;cursor:pointer;transition:all 0.25s;position:relative;overflow:hidden}
+.acc-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,176,0.04)0%,transparent 60%);opacity:0;transition:opacity 0.3s}
+.acc-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,229,176,0.1)}
+.acc-card:hover::after{opacity:1}
+.acc-card.hot{border-color:rgba(247,147,26,0.4)}
+.hot-strip{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--red))}
+.acc-badge-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.acc-badge{font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 9px}
+.hot-label{font-size:0.62rem;font-weight:700;color:var(--accent2);letter-spacing:0.06em}
+.acc-icon-name{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.acc-ico{font-size:1.6rem}
+.acc-nm{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.04em}
+.acc-broker{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted);margin-bottom:14px}
+.acc-price-row{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.acc-price{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.02em;color:var(--accent)}
+.acc-price.orange{color:var(--accent2)}
+.acc-was{font-size:0.75rem;color:var(--muted);text-decoration:line-through}
+.acc-save{font-size:0.7rem;color:var(--green);background:rgba(0,229,176,0.1);padding:2px 8px}
+.acc-features{list-style:none;font-size:0.78rem;color:var(--muted);line-height:1.9;margin:14px 0}
+.acc-features li{display:flex;align-items:center;gap:7px}
+.acc-features li::before{content:'▸';color:var(--accent);font-size:0.6rem;flex-shrink:0}
+.acc-card.hot .acc-features li::before{color:var(--accent2)}
+.acc-btn{display:block;width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Outfit',sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all 0.2s}
+.acc-btn:hover,.acc-card.hot .acc-btn{background:var(--accent);color:var(--bg)}
+.acc-card.hot .acc-btn{border-color:var(--accent2);background:var(--accent2);color:var(--bg)}
+
+/* Store checkout steps */
+.checkout-layout{display:grid;grid-template-columns:1fr 340px;gap:20px}
+@media(max-width:768px){.checkout-layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);padding:28px}
+.panel h2{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.06em;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.form-g{margin-bottom:14px}
+.flbl{display:block;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.finp{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Outfit',sans-serif;font-size:0.88rem;padding:11px 13px;outline:none;transition:border-color 0.2s}
+.finp:focus{border-color:var(--accent)}
+select.finp{cursor:pointer}
+
+.order-box{background:var(--surface);border:1px solid var(--border);padding:24px;position:sticky;top:20px}
+.ob-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.06em;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.ob-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.82rem}
+.ob-row .lbl{color:var(--muted)}
+.ob-row .val{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600}
+.ob-total{display:flex;justify-content:space-between;align-items:center;padding-top:16px;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.04em}
+.ob-total span:last-child{color:var(--accent)}
+
+.pay-method-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.pm-card{background:var(--surface2);border:2px solid var(--border);padding:20px;cursor:pointer;text-align:center;transition:all 0.2s}
+.pm-card:hover{border-color:var(--border2)}
+.pm-card.sel{border-color:var(--accent);background:rgba(0,229,176,0.05)}
+.pm-ico{font-size:2rem;margin-bottom:8px}
+.pm-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.04em}
+.pm-sub{font-size:0.68rem;color:var(--muted);margin-top:3px}
+.pm-check{width:18px;height:18px;border:1.5px solid var(--border);border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;transition:all 0.2s}
+.pm-card.sel .pm-check{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+.pay-detail{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.pay-detail h4{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.06em;margin-bottom:14px}
+.info-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);padding:12px 14px;margin-bottom:8px}
+.ir-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.ir-val{font-family:'JetBrains Mono',monospace;font-size:0.9rem;color:var(--accent);font-weight:600}
+.cp-btn{background:var(--border2);border:none;color:var(--muted);padding:7px 12px;font-size:0.68rem;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.2s;white-space:nowrap}
+.cp-btn:hover{background:var(--accent);color:var(--bg)}
+
+.qr-center{text-align:center;padding:10px 0}
+.qr-box{width:180px;height:180px;background:white;margin:0 auto 12px;padding:10px;display:flex;align-items:center;justify-content:center}
+.qr-amt{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--accent);letter-spacing:0.04em}
+.qr-ref{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted);margin-top:4px}
+
+/* Receipt & Done */
+.rcpt-card,.done-card{max-width:540px;margin:0 auto;background:var(--surface);border:1px solid var(--border);padding:40px}
+.rcpt-top{text-align:center;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.rcpt-ico{font-size:2.5rem;margin-bottom:12px}
+.rcpt-h{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.06em}
+.rcpt-sub{font-size:0.82rem;color:var(--muted);margin-top:4px}
+.rr{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:0.82rem}
+.rr .ll{color:var(--muted)}
+.rr .vv{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600}
+.rtotal{display:flex;justify-content:space-between;align-items:center;padding-top:18px;font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.04em}
+.rtotal span:last-child{color:var(--accent)}
+.cred-section{margin-top:24px;padding-top:24px;border-top:1px solid var(--border)}
+.cred-title{font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.cred-item{background:var(--surface2);border:1px solid var(--border);padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color 0.2s}
+.cred-item:hover{border-color:var(--accent)}
+.ci-label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px}
+.ci-val{font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--text)}
+
+.done-ring{width:90px;height:90px;border-radius:50%;border:2px solid var(--accent);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;box-shadow:0 0 40px rgba(0,229,176,0.25);animation:glowRing 2s ease-in-out infinite}
+@keyframes glowRing{0%,100%{box-shadow:0 0 30px rgba(0,229,176,0.25)}50%{box-shadow:0 0 60px rgba(0,229,176,0.5)}}
+.done-h{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:0.04em;text-align:center;line-height:0.95}
+.done-h span{color:var(--accent);display:block}
+.done-sub{color:var(--muted);font-size:0.88rem;text-align:center;line-height:1.8;margin:14px 0 24px}
+.wait-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);margin-bottom:24px}
+.wait-chip b{color:var(--accent2)}
+
+/* ── GLOBAL BUTTONS ── */
+.btn-acc{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--bg);font-family:'Outfit',sans-serif;font-weight:700;font-size:0.88rem;letter-spacing:0.04em;padding:13px 28px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 0 20px rgba(0,229,176,0.2)}
+.btn-acc:hover{box-shadow:0 0 40px rgba(0,229,176,0.4);transform:translateY(-1px)}
+.btn-acc.full{width:100%;justify-content:center;margin-top:8px}
+.btn-ghost2{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;padding:11px 22px;cursor:pointer;transition:all 0.2s}
+.btn-ghost2:hover{border-color:var(--border2);color:var(--text)}
+.back-link{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:0.8rem;cursor:pointer;margin-bottom:20px;transition:color 0.2s;padding:0}
+.back-link:hover{color:var(--accent)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface);border:1px solid var(--accent);color:var(--accent);padding:11px 18px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;transform:translateY(70px);opacity:0;transition:all 0.3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── FADE ── */
+.fade-up{animation:fadeUp 0.35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+.section-divider{font-family:'Bebas Neue',sans-serif;font-size:0.9rem;letter-spacing:0.1em;color:var(--muted);padding:12px 0 10px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Trade<span>Vault</span></div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchPage('charts')" id="tab-charts">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Live Charts
+    </div>
+    <div class="nav-tab" onclick="switchPage('market')" id="tab-market">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Markets
+    </div>
+    <div class="nav-tab" onclick="switchPage('store')" id="tab-store">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Buy Accounts
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <div class="live-label">LIVE</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ════════════════════════
+     CHARTS PAGE
+════════════════════════ -->
+<div class="page active" id="chartsPage">
+  <!-- Toolbar -->
+  <div class="chart-toolbar">
+    <span class="tb-label">Symbol</span>
+    <button class="symbol-btn active" onclick="loadChart('FX:EURUSD',this)">EUR/USD</button>
+    <button class="symbol-btn" onclick="loadChart('FX:GBPUSD',this)">GBP/USD</button>
+    <button class="symbol-btn" onclick="loadChart('FX:USDJPY',this)">USD/JPY</button>
+    <button class="symbol-btn" onclick="loadChart('BINANCE:BTCUSDT',this)">BTC/USDT</button>
+    <button class="symbol-btn" onclick="loadChart('BINANCE:ETHUSDT',this)">ETH/USDT</button>
+    <button class="symbol-btn" onclick="loadChart('BINANCE:SOLUSDT',this)">SOL/USDT</button>
+    <button class="symbol-btn" onclick="loadChart('NASDAQ:AAPL',this)">AAPL</button>
+    <button class="symbol-btn" onclick="loadChart('NASDAQ:TSLA',this)">TSLA</button>
+    <button class="symbol-btn" onclick="loadChart('FOREXCOM:XAUUSD',this)">XAU/USD</button>
+    <button class="symbol-btn" onclick="loadChart('SP:SPX',this)">S&P 500</button>
+    <div class="tb-sep"></div>
+    <span class="tb-label">Interval</span>
+    <button class="interval-btn" onclick="setInterval2('1',this)">1m</button>
+    <button class="interval-btn" onclick="setInterval2('5',this)">5m</button>
+    <button class="interval-btn" onclick="setInterval2('15',this)">15m</button>
+    <button class="interval-btn active" onclick="setInterval2('60',this)">1H</button>
+    <button class="interval-btn" onclick="setInterval2('240',this)">4H</button>
+    <button class="interval-btn" onclick="setInterval2('D',this)">1D</button>
+    <button class="interval-btn" onclick="setInterval2('W',this)">1W</button>
+  </div>
+
+  <div class="charts-body">
+    <!-- Main chart -->
+    <div class="chart-main">
+      <div id="tvContainer"></div>
+    </div>
+
+    <!-- Watchlist sidebar -->
+    <div class="chart-sidebar">
+      <div class="ws-header">
+        <div class="ws-title">Watchlist</div>
+        <div class="ws-count" id="wsCount">10 symbols</div>
+      </div>
+      <div id="watchlist"></div>
+    </div>
+  </div>
+
+  <!-- Mini charts row -->
+  <div class="mini-charts-row" id="miniRow"></div>
+</div>
+
+<!-- ════════════════════════
+     MARKET PAGE
+════════════════════════ -->
+<div class="page" id="marketPage">
+  <div class="market-body">
+    <div class="market-content">
+      <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px">// live market data</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.04em">Market Overview</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)" id="mktTime"></div>
+      </div>
+
+      <div class="section-divider">Forex Pairs</div>
+      <div class="market-grid" id="mktForex"></div>
+
+      <div class="section-divider">Crypto</div>
+      <div class="market-grid" id="mktCrypto"></div>
+
+      <div class="section-divider">Stocks & Indices</div>
+      <div class="market-grid" id="mktStocks"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════
+     STORE PAGE
+════════════════════════ -->
+<div class="page" id="storePage">
+  <div class="store-body">
+    <div class="store-inner">
+
+      <!-- S1: Browse -->
+      <div class="store-step active" id="ss1">
+        <div class="store-header">
+          <div class="store-label">// premium accounts marketplace</div>
+          <div class="store-title">Trading Accounts</div>
+          <div class="store-sub">Verified, ready-to-trade accounts. All types. GCash & QR accepted.</div>
+        </div>
+        <div class="cat-filter">
+          <button class="cf-btn active" onclick="filterStore('all',this)">All</button>
+          <button class="cf-btn" onclick="filterStore('forex',this)">Forex MT4/MT5</button>
+          <button class="cf-btn" onclick="filterStore('crypto',this)">Crypto</button>
+          <button class="cf-btn" onclick="filterStore('stocks',this)">Stocks</button>
+          <button class="cf-btn" onclick="filterStore('funded',this)">Funded</button>
+        </div>
+        <div class="acc-grid" id="accGrid"></div>
+      </div>
+
+      <!-- S2: Detail + Order -->
+      <div class="store-step" id="ss2">
+        <button class="back-link" onclick="storeGoTo(1)">← Back to Accounts</button>
+        <div class="checkout-layout">
+          <div>
+            <div class="panel fade-up">
+              <h2 id="s2Title">Account Details</h2>
+              <div id="s2Specs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
+              <div>
+                <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">What's Included</div>
+                <ul id="s2Includes" style="list-style:none;font-size:0.82rem;color:var(--muted);line-height:2"></ul>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="order-box fade-up">
+              <div class="ob-title">Your Order</div>
+              <div class="ob-row"><span class="lbl">Account</span><span class="val" id="obAcc">—</span></div>
+              <div class="ob-row"><span class="lbl">Type</span><span class="val" id="obType">—</span></div>
+              <div class="ob-row"><span class="lbl">Broker</span><span class="val" id="obBroker">—</span></div>
+              <div class="ob-row"><span class="lbl">Price</span><span class="val" id="obPrice" style="color:var(--accent)">—</span></div>
+              <div class="ob-total"><span>Total</span><span id="obTotal">—</span></div>
+              <div style="margin-top:20px">
+                <div class="form-g"><label class="flbl">Full Name</label><input class="finp" id="buyName" placeholder="Juan dela Cruz"></div>
+                <div class="form-g"><label class="flbl">Email</label><input class="finp" id="buyEmail" type="email" placeholder="you@email.com"></div>
+                <div class="form-g"><label class="flbl">GCash / Viber No.</label><input class="finp" id="buyPhone" placeholder="09XX XXX XXXX"></div>
+              </div>
+              <button class="btn-acc full" onclick="goToPay()">Choose Payment →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S3: Payment -->
+      <div class="store-step" id="ss3">
+        <button class="back-link" onclick="storeGoTo(2)">← Back</button>
+        <div style="max-width:640px">
+          <div class="store-label">// select method</div>
+          <div class="store-title" style="font-size:1.8rem;margin-bottom:20px">Payment Method</div>
+
+          <div class="pay-method-grid">
+            <div class="pm-card" id="pmc-gcash" onclick="pickPay('gcash')">
+              <div class="pm-check" id="pck-gcash"></div>
+              <div class="pm-ico">💙</div>
+              <div class="pm-name">GCash / Maya</div>
+              <div class="pm-sub">Send to our number</div>
+            </div>
+            <div class="pm-card" id="pmc-qr" onclick="pickPay('qr')">
+              <div class="pm-check" id="pck-qr"></div>
+              <div class="pm-ico">📱</div>
+              <div class="pm-name">QR Code</div>
+              <div class="pm-sub">Scan with any bank app</div>
+            </div>
+          </div>
+
+          <!-- GCash detail -->
+          <div id="gcashDetail" style="display:none">
+            <div class="pay-detail">
+              <h4>💙 GCash / Maya Details</h4>
+              <div class="info-row"><div><div class="ir-lbl">GCash Number</div><div class="ir-val">0936 932 6896</div></div><button class="cp-btn" onclick="copyText('0917 123 4567')">Copy</button></div>
+              <div class="info-row"><div><div class="ir-lbl">Maya Number</div><div class="ir-val">0991 368 5435</div></div><button class="cp-btn" onclick="copyText('0912 765 4321')">Copy</button></div>
+              <div class="info-row"><div><div class="ir-lbl">Amount</div><div class="ir-val" id="gAmt">₱0</div></div><button class="cp-btn" onclick="copyText(document.getElementById('gAmt').textContent)">Copy</button></div>
+              <div class="info-row"><div><div class="ir-lbl">Reference No.</div><div class="ir-val" id="gRef">—</div></div><button class="cp-btn" onclick="copyText(document.getElementById('gRef').textContent)">Copy</button></div>
+            </div>
+            <button class="btn-acc full" onclick="storeGoTo(4)">I've Sent Payment →</button>
+          </div>
+
+          <!-- QR detail -->
+          <div id="qrDetail" style="display:none">
+            <div class="pay-detail">
+              <h4>📱 Scan QR to Pay</h4>
+              <div class="qr-center">
+                <div class="qr-wrap">
+  <img src="valqr.jpg" alt="QR Code" width="180">
+</div>
+                <div class="qr-amt" id="qAmt">₱0</div>
+                <div class="qr-ref" id="qRef">Ref: —</div>
+              </div>
+            </div>
+            <button class="btn-acc full" onclick="storeGoTo(4)">I've Scanned & Paid →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- S4: Receipt + Confirm -->
+      <div class="store-step" id="ss4">
+        <button class="back-link" onclick="storeGoTo(3)">← Back</button>
+        <div class="rcpt-card fade-up">
+          <div class="rcpt-top">
+            <div class="rcpt-ico">🧾</div>
+            <div class="rcpt-h">Order Receipt</div>
+            <div class="rcpt-sub">Confirm everything looks correct.</div>
+          </div>
+          <div class="rr"><span class="ll">Name</span><span class="vv" id="rcName">—</span></div>
+          <div class="rr"><span class="ll">Email</span><span class="vv" id="rcEmail">—</span></div>
+          <div class="rr"><span class="ll">Contact</span><span class="vv" id="rcPhone">—</span></div>
+          <div class="rr"><span class="ll">Account</span><span class="vv" id="rcAcc">—</span></div>
+          <div class="rr"><span class="ll">Type</span><span class="vv" id="rcType">—</span></div>
+          <div class="rr"><span class="ll">Payment via</span><span class="vv" id="rcPay">—</span></div>
+          <div class="rr"><span class="ll">Reference No.</span><span class="vv" id="rcRef" style="color:var(--accent)">—</span></div>
+          <div class="rtotal"><span>Total</span><span id="rcTotal">—</span></div>
+          <button class="btn-acc full" style="margin-top:24px" onclick="storeGoTo(5)">CONFIRM ORDER ✓</button>
+        </div>
+      </div>
+
+      <!-- S5: Done + Credentials -->
+      <div class="store-step" id="ss5">
+        <div class="rcpt-card fade-up">
+          <div style="text-align:center;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+            <div class="done-ring">✓</div>
+            <div class="done-h">Order<br><span>Complete!</span></div>
+            <p class="done-sub">Payment submitted. Account credentials below. Verification within 24 hours.</p>
+            <div class="wait-chip">⏱ Activation: <b>Up to 24 hours</b></div>
+          </div>
+          <div class="cred-section">
+            <div class="cred-title">Your Account Credentials</div>
+            <div class="cred-item" onclick="copyText(document.getElementById('ciLogin').textContent)">
+              <div><div class="ci-label">Login / Email</div><div class="ci-val" id="ciLogin">—</div></div>
+              <span style="font-size:0.68rem;color:var(--muted)">tap to copy</span>
+            </div>
+            <div class="cred-item" onclick="copyText(document.getElementById('ciPass').textContent)">
+              <div><div class="ci-label">Password</div><div class="ci-val" id="ciPass">—</div></div>
+              <span style="font-size:0.68rem;color:var(--muted)">tap to copy</span>
+            </div>
+            <div class="cred-item" onclick="copyText(document.getElementById('ciServer').textContent)">
+              <div><div class="ci-label">Server / Platform</div><div class="ci-val" id="ciServer">—</div></div>
+              <span style="font-size:0.68rem;color:var(--muted)">tap to copy</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:24px">
+            <button class="btn-ghost2" style="flex:1;justify-content:center" onclick="storeGoTo(1);filterStore('all',document.querySelector('.cf-btn'))">Buy Another</button>
+            <button class="btn-acc" style="flex:1;justify-content:center" onclick="switchPage('charts')">📈 View Charts</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast">Copied!</div>
+
+<!-- TradingView Widget Script -->
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+// ════════════════════════════════════
+// STATE
+// ════════════════════════════════════
+const S = {
+  currentSymbol: 'FX:EURUSD',
+  currentInterval: '60',
+  selectedAcc: null,
+  payMethod: null,
+  ref: '',
+  buyerName: '',
+  buyerEmail: '',
+  buyerPhone: '',
+  tvWidget: null,
+};
+
+// ════════════════════════════════════
+// ACCOUNTS DATA
+// ════════════════════════════════════
+const ACCOUNTS = [
+  {id:1,cat:'forex',name:'MT5 Pro Forex',broker:'IC Markets',icon:'📈',price:2800,orig:3500,badge:'badge-forex',badgeText:'Forex',hot:false,
+   specs:[{l:'Balance',v:'$500'},{l:'Leverage',v:'1:500'},{l:'Platform',v:'MT5'},{l:'Pairs',v:'50+'}],
+   features:['Full MT5 access','50+ currency pairs','1:500 leverage','EA / Bot compatible'],
+   includes:['Login credentials','Server details','Full account access','Setup guide'],server:'IC-Markets-Live01'},
+  {id:2,cat:'forex',name:'MT4 Starter',broker:'XM Global',icon:'💹',price:1500,orig:2000,badge:'badge-forex',badgeText:'Forex',hot:false,
+   specs:[{l:'Balance',v:'$200'},{l:'Leverage',v:'1:888'},{l:'Platform',v:'MT4'},{l:'Pairs',v:'30+'}],
+   features:['MT4 platform','1:888 leverage','30+ pairs','Instant execution'],
+   includes:['MT4 login & pass','Server info','Investor password','Setup guide'],server:'XMGlobal-MT4-Real'},
+  {id:3,cat:'crypto',name:'Binance Pro',broker:'Binance',icon:'₿',price:4500,orig:6000,badge:'badge-crypto',badgeText:'Crypto',hot:true,
+   specs:[{l:'Balance',v:'$1,000'},{l:'Max Lev.',v:'20x'},{l:'KYC',v:'Verified'},{l:'Assets',v:'200+'}],
+   features:['Level 2 KYC verified','Futures & spot','20x leverage','API access'],
+   includes:['Email access','2FA reset','API keys','Full account transfer'],server:'binance.com'},
+  {id:4,cat:'crypto',name:'Bybit Derivatives',broker:'Bybit',icon:'🔐',price:3200,orig:4000,badge:'badge-crypto',badgeText:'Crypto',hot:false,
+   specs:[{l:'Balance',v:'$500'},{l:'Leverage',v:'100x'},{l:'Status',v:'KYC Done'},{l:'Type',v:'Derivatives'}],
+   features:['KYC verified','100x leverage','USDT perpetuals','Copy trading'],
+   includes:['Email & password','2FA codes','Full ownership','API access'],server:'bybit.com'},
+  {id:5,cat:'stocks',name:'TD Ameritrade',broker:'TD Ameritrade',icon:'🏦',price:5500,orig:7000,badge:'badge-stocks',badgeText:'Stocks',hot:false,
+   specs:[{l:'Balance',v:'$2,000'},{l:'Margin',v:'4:1'},{l:'Market',v:'US Stocks'},{l:'Platform',v:'ToS'}],
+   features:['US stocks access','Options trading','4:1 intraday margin','No commission'],
+   includes:['Account credentials','Email access','Platform login','Trade history'],server:'tdameritrade.com'},
+  {id:6,cat:'stocks',name:'eToro Social',broker:'eToro',icon:'🌐',price:2200,orig:2800,badge:'badge-stocks',badgeText:'Stocks',hot:false,
+   specs:[{l:'Balance',v:'$500'},{l:'Leverage',v:'5:1'},{l:'Type',v:'Social'},{l:'Markets',v:'Global'}],
+   features:['Copy trading enabled','Stocks & ETFs','CFD access','Social features'],
+   includes:['Login credentials','Verified profile','Email access','Full support'],server:'etoro.com'},
+  {id:7,cat:'funded',name:'FTMO $100K Funded',broker:'FTMO',icon:'🏆',price:8500,orig:12000,badge:'badge-forex',badgeText:'Funded',hot:true,
+   specs:[{l:'Capital',v:'$100K'},{l:'Profit Split',v:'80%'},{l:'Status',v:'Active'},{l:'Platform',v:'MT4/5'}],
+   features:['$100K funded account','Already passed challenge','80% profit split','No time limit'],
+   includes:['Full account access','Trading credentials','Profit withdrawal guide','Certificate'],server:'FTMO-Server-01'},
+  {id:8,cat:'funded',name:'MyFundedFX $50K',broker:'MyFundedFX',icon:'💎',price:4800,orig:7000,badge:'badge-forex',badgeText:'Funded',hot:false,
+   specs:[{l:'Capital',v:'$50K'},{l:'Profit Split',v:'75%'},{l:'Status',v:'Active'},{l:'Payouts',v:'Bi-weekly'}],
+   features:['$50K funded account','Challenge cleared','75% profit split','EA allowed'],
+   includes:['MT5 login details','Trading rules PDF','Direct support','Payout setup'],server:'MFF-Live-MT5'},
+];
+
+// ════════════════════════════════════
+// MARKET DATA (simulated live prices)
+// ════════════════════════════════════
+const MARKET_DATA = {
+  forex:[
+    {sym:'EUR/USD',name:'Euro / US Dollar',price:1.0842,change:+0.0018,pct:+0.17,high:1.0868,low:1.0815,vol:'148.2B',tvSym:'FX:EURUSD'},
+    {sym:'GBP/USD',name:'British Pound / USD',price:1.2743,change:+0.0031,pct:+0.24,high:1.2780,low:1.2710,vol:'92.1B',tvSym:'FX:GBPUSD'},
+    {sym:'USD/JPY',name:'US Dollar / Yen',price:154.32,change:+0.44,pct:+0.29,high:154.78,low:153.90,vol:'201.5B',tvSym:'FX:USDJPY'},
+    {sym:'AUD/USD',name:'Australian Dollar / USD',price:0.6481,change:-0.0012,pct:-0.18,high:0.6502,low:0.6468,vol:'62.4B',tvSym:'FX:AUDUSD'},
+  ],
+  crypto:[
+    {sym:'BTC/USDT',name:'Bitcoin',price:67432,change:+1204,pct:+1.82,high:68100,low:65900,vol:'38.4B',tvSym:'BINANCE:BTCUSDT'},
+    {sym:'ETH/USDT',name:'Ethereum',price:3241,change:-28,pct:-0.86,high:3310,low:3198,vol:'14.2B',tvSym:'BINANCE:ETHUSDT'},
+    {sym:'SOL/USDT',name:'Solana',price:148.20,change:+3.40,pct:+2.35,high:151.00,low:144.20,vol:'4.8B',tvSym:'BINANCE:SOLUSDT'},
+    {sym:'BNB/USDT',name:'BNB',price:582.10,change:-4.20,pct:-0.72,high:591.00,low:578.40,vol:'2.1B',tvSym:'BINANCE:BNBUSDT'},
+  ],
+  stocks:[
+    {sym:'AAPL',name:'Apple Inc.',price:189.20,change:+1.40,pct:+0.75,high:190.50,low:187.80,vol:'62.1M',tvSym:'NASDAQ:AAPL'},
+    {sym:'TSLA',name:'Tesla Inc.',price:174.80,change:-3.20,pct:-1.80,high:179.00,low:173.50,vol:'118.4M',tvSym:'NASDAQ:TSLA'},
+    {sym:'SPX',name:'S&P 500',price:5248,change:+32,pct:+0.61,high:5270,low:5215,vol:'—',tvSym:'SP:SPX'},
+    {sym:'XAU/USD',name:'Gold Spot',price:2318.40,change:-4.20,pct:-0.18,high:2330.10,low:2310.80,vol:'—',tvSym:'FOREXCOM:XAUUSD'},
+  ],
+};
+
+// ════════════════════════════════════
+// TICKER
+// ════════════════════════════════════
+function buildTicker() {
+  const all = [...MARKET_DATA.forex,...MARKET_DATA.crypto,...MARKET_DATA.stocks];
+  const items = [...all,...all].map(d=>`
+    <span class="ti">
+      <span class="sym">${d.sym}</span>
+      ${d.price.toLocaleString(undefined,{minimumFractionDigits:d.price>100?2:4,maximumFractionDigits:d.price>100?2:4})}
+      <span class="${d.pct>=0?'up':'dn'}">${d.pct>=0?'▲':'▼'} ${Math.abs(d.pct).toFixed(2)}%</span>
+    </span>
+  `).join('');
+  document.getElementById('tickerTrack').innerHTML = items;
+}
+
+// ════════════════════════════════════
+// PAGE SWITCHING
+// ════════════════════════════════════
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(page+'Page').classList.add('active');
+  document.getElementById('tab-'+page).classList.add('active');
+  if(page==='charts') setTimeout(initTVChart, 50);
+  if(page==='market') renderMarket();
+}
+
+// ════════════════════════════════════
+// TRADINGVIEW CHART
+// ════════════════════════════════════
+function initTVChart() {
+  document.getElementById('tvContainer').innerHTML = '';
+  if(typeof TradingView === 'undefined') {
+    // Fallback if TradingView script not loaded
+    document.getElementById('tvContainer').innerHTML = `
+      <iframe src="https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${encodeURIComponent(S.currentSymbol)}&interval=${S.currentInterval}&theme=dark&style=1&locale=en&toolbar_bg=%230d1318&enable_publishing=false&hide_side_toolbar=0&allow_symbol_change=1&save_image=false&studies=[]&hideideas=1&hidevolume=0&withdateranges=1&utm_source=tradevault&utm_medium=widget"
+        style="width:100%;height:100%;border:none;" allowtransparency="true" scrolling="no"></iframe>`;
+    return;
+  }
+  S.tvWidget = new TradingView.widget({
+    container_id: 'tvContainer',
+    symbol: S.currentSymbol,
+    interval: S.currentInterval,
+    timezone: 'Asia/Manila',
+    theme: 'dark',
+    style: '1',
+    locale: 'en',
+    toolbar_bg: '#0d1318',
+    enable_publishing: false,
+    hide_side_toolbar: false,
+    allow_symbol_change: true,
+    save_image: false,
+    hide_top_toolbar: false,
+    withdateranges: true,
+    studies: ['RSI@tv-basicstudies','MACD@tv-basicstudies'],
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#060a0e',
+    gridColor: 'rgba(30,45,61,0.5)',
+  });
+}
+
+function loadChart(sym, btn) {
+  S.currentSymbol = sym;
+  document.querySelectorAll('.symbol-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  initTVChart();
+  // Highlight watchlist
+  document.querySelectorAll('.ws-item').forEach(w=>{
+    w.classList.toggle('selected', w.dataset.sym===sym);
+  });
+}
+
+function setInterval2(intv, btn) {
+  S.currentInterval = intv;
+  document.querySelectorAll('.interval-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  initTVChart();
+}
+
+// ════════════════════════════════════
+// WATCHLIST
+// ════════════════════════════════════
+const WATCHLIST_SYMBOLS = [
+  {sym:'FX:EURUSD',label:'EUR/USD',price:'1.0842',chg:'+0.17%',up:true},
+  {sym:'FX:GBPUSD',label:'GBP/USD',price:'1.2743',chg:'+0.24%',up:true},
+  {sym:'FX:USDJPY',label:'USD/JPY',price:'154.32',chg:'+0.29%',up:true},
+  {sym:'FX:AUDUSD',label:'AUD/USD',price:'0.6481',chg:'-0.18%',up:false},
+  {sym:'BINANCE:BTCUSDT',label:'BTC/USDT',price:'67,432',chg:'+1.82%',up:true},
+  {sym:'BINANCE:ETHUSDT',label:'ETH/USDT',price:'3,241',chg:'-0.86%',up:false},
+  {sym:'BINANCE:SOLUSDT',label:'SOL/USDT',price:'148.20',chg:'+2.35%',up:true},
+  {sym:'FOREXCOM:XAUUSD',label:'XAU/USD',price:'2,318',chg:'-0.18%',up:false},
+  {sym:'NASDAQ:AAPL',label:'AAPL',price:'189.20',chg:'+0.75%',up:true},
+  {sym:'SP:SPX',label:'S&P 500',price:'5,248',chg:'+0.61%',up:true},
+];
+
+function buildWatchlist() {
+  document.getElementById('watchlist').innerHTML = WATCHLIST_SYMBOLS.map(w=>`
+    <div class="ws-item${w.sym===S.currentSymbol?' selected':''}" data-sym="${w.sym}" onclick="loadChartFromWL('${w.sym}')">
+      <div><div class="ws-sym">${w.label}</div><div class="ws-name">${w.sym.split(':')[0]}</div></div>
+      <div class="ws-price">
+        <div class="ws-val">${w.price}</div>
+        <div class="ws-chg ${w.up?'up':'dn'}">${w.chg}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadChartFromWL(sym) {
+  S.currentSymbol = sym;
+  // Update symbol buttons if matching
+  document.querySelectorAll('.symbol-btn').forEach(b=>{
+    b.classList.remove('active');
+  });
+  document.querySelectorAll('.ws-item').forEach(w=>{
+    w.classList.toggle('selected', w.dataset.sym===sym);
+  });
+  initTVChart();
+}
+
+// ════════════════════════════════════
+// MINI CHARTS
+// ════════════════════════════════════
+const MINI_PAIRS = ['EUR/USD','BTC','ETH','XAU/USD','GBP/USD','SOL'];
+function buildMiniRow() {
+  const row = document.getElementById('miniRow');
+  row.innerHTML = MINI_PAIRS.map((p,i)=>`
+    <div class="mini-chart-slot${i===0?' active-slot':''}" onclick="switchMiniActive(${i},this)">
+      <div class="mini-label">
+        <span class="mini-sym">${p}</span>
+        <span class="mini-p ${Math.random()>0.4?'up':'dn'}">${Math.random()>0.4?'+':'-'}${(Math.random()*2).toFixed(2)}%</span>
+      </div>
+      <canvas class="mini-canvas" id="miniC${i}"></canvas>
+    </div>
+  `).join('');
+  setTimeout(()=>MINI_PAIRS.forEach((_,i)=>drawMiniChart(i)), 100);
+}
+
+function switchMiniActive(i, el) {
+  document.querySelectorAll('.mini-chart-slot').forEach(s=>s.classList.remove('active-slot'));
+  el.classList.add('active-slot');
+}
+
+function drawMiniChart(i) {
+  const canvas = document.getElementById('miniC'+i);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const pts = 40;
+  const data = Array.from({length:pts},(_,j)=>50+Math.sin(j*0.4+i)*20+Math.random()*15-7);
+  const up = data[data.length-1] > data[0];
+  const color = up ? '#00e5b0' : '#f0455a';
+  const minV = Math.min(...data), maxV = Math.max(...data);
+  const scaleY = v=>(canvas.height-20)*((maxV-v)/(maxV-minV||1))+10;
+  const scaleX = j=>j*(canvas.width/(pts-1));
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const grad = ctx.createLinearGradient(0,0,0,canvas.height);
+  grad.addColorStop(0, up?'rgba(0,229,176,0.15)':'rgba(240,69,90,0.15)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  data.forEach((v,j)=>j===0?ctx.moveTo(scaleX(j),scaleY(v)):ctx.lineTo(scaleX(j),scaleY(v)));
+  ctx.lineTo(canvas.width,canvas.height);
+  ctx.lineTo(0,canvas.height);
+  ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  ctx.beginPath();
+  data.forEach((v,j)=>j===0?ctx.moveTo(scaleX(j),scaleY(v)):ctx.lineTo(scaleX(j),scaleY(v)));
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+}
+
+// ════════════════════════════════════
+// MARKET PAGE
+// ════════════════════════════════════
+function renderMarket() {
+  renderMktSection('mktForex', MARKET_DATA.forex, 'forex');
+  renderMktSection('mktCrypto', MARKET_DATA.crypto, 'crypto');
+  renderMktSection('mktStocks', MARKET_DATA.stocks, 'stocks');
+  updateMktTime();
+}
+
+function renderMktSection(elId, data, cat) {
+  document.getElementById(elId).innerHTML = data.map(d=>`
+    <div class="mkt-card cat-${cat}" onclick="switchPage('charts');loadChartSym('${d.tvSym}')">
+      <div class="mkt-top">
+        <div class="mkt-sym-wrap">
+          <div class="mkt-sym">${d.sym}</div>
+          <div class="mkt-name">${d.name}</div>
+        </div>
+        <div class="mkt-cat-badge badge-${cat}">${cat.toUpperCase()}</div>
+      </div>
+      <div class="mkt-price">${formatPrice(d.price,d.sym)}</div>
+      <div class="mkt-change ${d.pct>=0?'up':'dn'}">${d.pct>=0?'▲':'▼'} ${Math.abs(d.change).toLocaleString()} (${d.pct>=0?'+':''}${d.pct.toFixed(2)}%)</div>
+      <div class="mkt-sparkline"><canvas id="spark-${d.sym.replace('/','_')}"></canvas></div>
+      <div class="mkt-stats">
+        <div class="mkt-stat"><div class="mkt-stat-lbl">High</div><div class="mkt-stat-val">${formatPrice(d.high,d.sym)}</div></div>
+        <div class="mkt-stat"><div class="mkt-stat-lbl">Low</div><div class="mkt-stat-val">${formatPrice(d.low,d.sym)}</div></div>
+        <div class="mkt-stat"><div class="mkt-stat-lbl">Volume</div><div class="mkt-stat-val">${d.vol}</div></div>
+      </div>
+    </div>
+  `).join('');
+  setTimeout(()=>data.forEach(d=>drawSparkline('spark-'+d.sym.replace('/','_'),d.pct>=0)), 50);
+}
+
+function formatPrice(p,sym) {
+  if(p>1000) return p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(p>10) return p.toFixed(2);
+  return p.toFixed(4);
+}
+
+function loadChartSym(sym) {
+  S.currentSymbol = sym;
+  setTimeout(initTVChart, 100);
+}
+
+function drawSparkline(id, up) {
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+  const data = Array.from({length:30},(_,i)=>50+Math.sin(i*0.5)*15+Math.random()*20-10);
+  const color = up ? '#00e5b0' : '#f0455a';
+  const min=Math.min(...data),max=Math.max(...data);
+  const sy=v=>canvas.height*0.9-canvas.height*0.8*(v-min)/(max-min||1);
+  const sx=i=>i*(canvas.width/29);
+  ctx.beginPath();
+  data.forEach((v,i)=>i===0?ctx.moveTo(sx(i),sy(v)):ctx.lineTo(sx(i),sy(v)));
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function updateMktTime() {
+  const el = document.getElementById('mktTime');
+  if(!el) return;
+  const now = new Date();
+  el.textContent = 'Last updated: '+now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'  •  PHT';
+  setTimeout(updateMktTime, 1000);
+}
+
+// Simulate price fluctuations
+function animatePrices() {
+  MARKET_DATA.forex.forEach(d=>{d.price+=(Math.random()-0.5)*0.0005});
+  MARKET_DATA.crypto.forEach(d=>{d.price+=(Math.random()-0.5)*d.price*0.001});
+  MARKET_DATA.stocks.forEach(d=>{d.price+=(Math.random()-0.5)*0.5});
+  if(document.getElementById('mktForex').innerHTML) renderMarket();
+}
+
+// ════════════════════════════════════
+// STORE
+// ════════════════════════════════════
+let storeCurrent = 1;
+
+function storeGoTo(n) {
+  document.querySelectorAll('.store-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ss'+n).classList.add('active');
+  storeCurrent = n;
+  document.querySelector('.store-body').scrollTop = 0;
+  if(n===4) fillReceipt();
+  if(n===5) fillCredentials();
+}
+
+function renderAccGrid(cat) {
+  const list = cat==='all' ? ACCOUNTS : ACCOUNTS.filter(a=>a.cat===cat);
+  document.getElementById('accGrid').innerHTML = list.map(a=>`
+    <div class="acc-card${a.hot?' hot':''}" onclick="selectAcc(${a.id})">
+      ${a.hot?'<div class="hot-strip"></div>':''}
+      <div class="acc-badge-row">
+        <span class="acc-badge ${a.badge}">${a.badgeText}</span>
+        ${a.hot?'<span class="hot-label">🔥 HOT DEAL</span>':''}
+      </div>
+      <div class="acc-icon-name"><span class="acc-ico">${a.icon}</span><span class="acc-nm">${a.name}</span></div>
+      <div class="acc-broker">// ${a.broker}</div>
+      <div class="acc-price-row">
+        <div class="acc-price${a.hot?' orange':''}">₱${a.price.toLocaleString()}</div>
+        <div class="acc-was">₱${a.orig.toLocaleString()}</div>
+        <div class="acc-save">-${Math.round((1-a.price/a.orig)*100)}%</div>
+      </div>
+      <ul class="acc-features">${a.features.map(f=>`<li>${f}</li>`).join('')}</ul>
+      <button class="acc-btn">Select Account →</button>
+    </div>
+  `).join('');
+}
+
+function filterStore(cat, btn) {
+  document.querySelectorAll('.cf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAccGrid(cat);
+}
+
+function selectAcc(id) {
+  S.selectedAcc = ACCOUNTS.find(a=>a.id===id);
+  const a = S.selectedAcc;
+  S.ref = 'TV-'+Date.now().toString(36).toUpperCase().slice(-6);
+
+  document.getElementById('s2Title').textContent = a.icon+' '+a.name;
+  document.getElementById('s2Specs').innerHTML = a.specs.map(s=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);padding:14px">
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${s.l}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:600">${s.v}</div>
+    </div>
+  `).join('');
+  document.getElementById('s2Includes').innerHTML = a.includes.map(i=>`
+    <li style="display:flex;align-items:center;gap:8px"><span style="color:var(--accent);font-size:0.6rem">▸</span>${i}</li>
+  `).join('');
+  document.getElementById('obAcc').textContent = a.name;
+  document.getElementById('obType').textContent = a.badgeText;
+  document.getElementById('obBroker').textContent = a.broker;
+  document.getElementById('obPrice').textContent = '₱'+a.price.toLocaleString();
+  document.getElementById('obTotal').textContent = '₱'+a.price.toLocaleString();
+
+  storeGoTo(2);
+}
+
+function goToPay() {
+  const name = document.getElementById('buyName').value.trim();
+  const email = document.getElementById('buyEmail').value.trim();
+  if(!name||!email){ showToast('Please fill your name & email!'); return; }
+  S.buyerName = name;
+  S.buyerEmail = email;
+  S.buyerPhone = document.getElementById('buyPhone').value.trim()||'N/A';
+  storeGoTo(3);
+}
+
+function pickPay(method) {
+  S.payMethod = method;
+  document.querySelectorAll('.pm-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.pm-check').forEach(c=>c.textContent='');
+  document.getElementById('pmc-'+method).classList.add('sel');
+  document.getElementById('pck-'+method).textContent = '✓';
+  document.getElementById('gcashDetail').style.display = method==='gcash'?'block':'none';
+  document.getElementById('qrDetail').style.display = method==='qr'?'block':'none';
+
+  const amt = S.selectedAcc ? '₱'+S.selectedAcc.price.toLocaleString() : '₱0';
+  document.getElementById('gAmt').textContent = amt;
+  document.getElementById('gRef').textContent = S.ref;
+  document.getElementById('qAmt').textContent = amt;
+  document.getElementById('qRef').textContent = 'Ref: '+S.ref;
+}
+
+function fillReceipt() {
+  document.getElementById('rcName').textContent = S.buyerName||'—';
+  document.getElementById('rcEmail').textContent = S.buyerEmail||'—';
+  document.getElementById('rcPhone').textContent = S.buyerPhone||'—';
+  document.getElementById('rcAcc').textContent = S.selectedAcc?.name||'—';
+  document.getElementById('rcType').textContent = S.selectedAcc?.badgeText||'—';
+  document.getElementById('rcPay').textContent = S.payMethod==='gcash'?'GCash / Maya':'QR Code';
+  document.getElementById('rcRef').textContent = S.ref;
+  document.getElementById('rcTotal').textContent = S.selectedAcc?'₱'+S.selectedAcc.price.toLocaleString():'—';
+}
+
+function fillCredentials() {
+  if(!S.selectedAcc) return;
+  const user = S.buyerEmail.split('@')[0]+'_tv'+Math.floor(Math.random()*100);
+  const pass = 'TV#'+Math.random().toString(36).substring(2,8).toUpperCase()+'!'+Math.floor(Math.random()*99);
+  document.getElementById('ciLogin').textContent = user;
+  document.getElementById('ciPass').textContent = pass;
+  document.getElementById('ciServer').textContent = S.selectedAcc.server;
+}
+
+// ════════════════════════════════════
+// UTILS
+// ════════════════════════════════════
+function copyText(val) {
+  navigator.clipboard.writeText(val).catch(()=>{});
+  showToast('Copied!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+buildTicker();
+buildWatchlist();
+buildMiniRow();
+renderAccGrid('all');
+setTimeout(initTVChart, 300);
+setInterval(animatePrices, 3000);
+</script>
+</body>
+</html>
